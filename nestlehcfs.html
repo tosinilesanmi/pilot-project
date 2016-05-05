@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>South South HCFs & Retail Outlets</title>
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+	<link rel="stylesheet" href="MarkerCluster.css"/>
+	<link rel="stylesheet" href="MarkerCluster.Default.css" />
+	<script src="leaflet.markercluster.js"></script>
+	<style>
+		body {
+			margin: 0px;
+			font-family: 'Open Sans', Helvetica, sans-serif;
+		}
+
+		img {
+			float: left;
+			padding-right: 10px;
+		}
+
+		p {
+		    font-size: 15px;
+		    line-height: 25px;
+		}
+
+		h1 {
+			line-height: 60px;
+			margin-top: 0px;
+			margin-bottom: 0px;
+			font-weight: lighter;		
+		}
+
+		#wrapper {
+			width: 750px;
+		}
+
+		#map {
+			width: 1000px;
+			margin: 0 auto;
+			height: 500px;
+		}
+
+		#controls {
+			width: 100%;
+			margin: 0 auto;
+		}
+
+		#header {
+			margin-top: 0px;
+			margin-bottom: 0px;
+		}
+
+		.legend {
+			line-height: 18px;
+			color: #333333;
+			padding: 6px 8px;
+			background: white;
+			background: rgba(255,255,255,0.8);
+			box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			border-radius: 5px;
+		}
+
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 14px;
+			opacity: 0.7;
+		}
+
+		.legend img {
+			width: 14px;
+			height: 14px;
+			float: left;
+		}
+
+		.legend p {
+			font-size: 9px;
+			line-height: 18px;
+			margin: 0;
+		}
+
+		#credits p {
+			margin-top: 5px;
+			font-size: 12px;
+			text-align: right;
+			line-height: 16px;
+		}
+	</style>
+</head>
+<body>
+	<!-- Our web map and content will go here -->
+	<div id="wrapper">
+		<div id="header">
+			<h1><img src="images/logo.png" alt="Coffee Cup Logo" style="height: 55px; width: 90px;">South South Retail Information System</h1>
+		</div>
+	<div id="map" ></div>
+	<div id="controls">
+		<div id="credits"><p>&copy; Pilot Project - Tosin Ilesanmi, 2016</p></div>
+	</div>
+	<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	<script>
+    	// Web map code goes here
+    	var map = L.map('map',{ center: [5.551001,  7.139411], zoom: 8 });
+
+    	L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+		
+		$.getJSON("ss_lgas.geojson",function(data){
+			ss_lgasPolygon = L.geoJson(data,{
+				style: function(feature){
+					var fillColor,
+						Population = feature.properties.Population
+					if ( Population > 300000) fillColor = "#584040";
+					else if ( Population > 250000 ) fillColor = "#31a354";
+					else if ( Population > 200000 ) fillColor = "#d7181b";
+					else if ( Population > 150000 ) fillColor = "#d47fd4";
+					else if ( Population > 100000 ) fillColor = "#e3d319";
+					else if ( Population > 0 ) fillColor = "#e5f1cb'";
+					else fillColor = "#f7f7f7";  // no data
+					return { color: "#ffffff", weight: 1, fillColor: fillColor, fillOpacity: .4 };
+				},
+				onEachFeature: function (feature, layer) {
+					layer.bindPopup( "<strong>" + feature.properties.LGAName + "</strong><br/>" + feature.properties.Population + " People" )
+				}
+			}).addTo(map);
+		});
+		
+		
+		$.getJSON("nestle_hcf.geojson",function(data){
+			nestle_hcfPoints = L.geoJson(data,{
+				onEachFeature: function (feature, layer) {
+					layer.bindPopup(feature.properties.HCF + feature.properties.Total_HCPs);
+			}, pointToLayer: function (feature, latlng) {
+					var marker = L.marker(latlng,{icon: hospitalIcon});
+					return marker;
+				}
+			}).addTo(map);
+			
+		var hospitalIcon = L.icon({
+			iconUrl: 'images/hospital.png',
+			iconSize: [20,20],
+			iconAnchor: [18,18],
+			popupAnchor: [0,-6]
+		});
+		
+		var clusters = L.markerClusterGroup();
+			clusters.addLayer(nestle_hcf.geojson);
+			map.addLayer(clusters);
+		});
+		
+		
+		$.getJSON("retail_outlets.geojson",function(data){
+			retail_outletsPoints = L.geoJson(data,{
+				onEachFeature: function (feature, layer) {
+					layer.bindPopup(feature.properties.Name);
+			}, pointToLayer: function (feature, latlng) {
+					var marker = L.marker(latlng,{icon: retailIcon});
+					return marker;
+				}
+			}).addTo(map);
+		});
+		
+		var retailIcon = L.icon({
+			iconUrl: 'images/retail.png',
+			iconSize: [20,20],
+			iconAnchor: [18,18],
+			popupAnchor: [0,-6]
+		});
+		
+		// Create Leaflet Control Object for Legend
+		var legend = L.control({position: 'topright'});
+
+		// Function that runs when legend is added to map
+		legend.onAdd = function (map) {
+
+			// Create Div Element and Populate it with HTML
+			var div = L.DomUtil.create('div', 'legend');		    
+			div.innerHTML += '<b>Nestle South South</b><br />';
+			div.innerHTML += 'by LGA<br />';
+			div.innerHTML += '<small>Population</small><br />';  
+			div.innerHTML += '<i style="background: #584040"></i><p>300000+</p>';
+			div.innerHTML += '<i style="background: #31a354"></i><p>250000-300000</p>';
+			div.innerHTML += '<i style="background: #d7181b"></i><p>200000-250000</p>';
+			div.innerHTML += '<i style="background: #d47fd4"></i><p>150000-200000</p>';
+			div.innerHTML += '<i style="background: #e3d319"></i><p>100000-150000</p>';
+			div.innerHTML += '<i style="background: #e5f1cb"></i><p>0-100000</p>';
+			div.innerHTML += '<hr>Health Facilities';
+			div.innerHTML += '<br /><img src="images/hospital.png">Hospitals';
+			div.innerHTML += '<br /><img src="images/grocery.png">Retail Outlets';
+
+			// Return the Legend div containing the HTML content
+			return div;
+		};
+
+		// Add Legend to Map
+		legend.addTo(map);
+
+		// Add Scale Bar to Map
+		L.control.scale({position: 'bottomleft'}).addTo(map);
+		
+		var baseLayers = {
+				"OSM Mapnik": L.tileLayer,
+		};
+
+		var overlays = {
+			"Health Facilities": nestle_hcfPoints = L.geoJson
+		};
+		
+		var overlays = {
+			"Retail Outlets": retail_outletsPoints = L.geoJson
+		};
+		
+		var overlays = {
+			"LGAs": ss_lgasPolygon = L.geoJson
+		};
+		
+		L.control.layers(baseLayers,overlays,overlays,overlays).addTo(map);
+				
+	</script>
+</body>
+</html>
